@@ -598,34 +598,8 @@ def _loadarff(ofile):
 
     ni = len(convertors)
 
-    def generator(row_iter, delim=','):
-        # TODO: this is where we are spending times (~80%). I think things
-        # could be made more efficiently:
-        #   - We could for example "compile" the function, because some values
-        #   do not change here.
-        #   - The function to convert a line to dtyped values could also be
-        #   generated on the fly from a string and be executed instead of
-        #   looping.
-        #   - The regex are overkill: for comments, checking that a line starts
-        #   by % should be enough and faster, and for empty lines, same thing
-        #   --> this does not seem to change anything.
-
-        # 'compiling' the range since it does not change
-        # Note, I have already tried zipping the converters and
-        # row elements and got slightly worse performance.
-        elems = list(range(ni))
-
-        for raw in row_iter:
-            # We do not abstract skipping comments and empty lines for
-            # performance reasons.
-            if r_comment.match(raw) or r_empty.match(raw):
-                continue
-            row = raw.split(delim)
-            yield tuple([convertors[i](row[i]) for i in elems])
-
-    a = generator(ofile)
-    # No error should happen here: it is a bug otherwise
-    data = np.fromiter(a, descr)
+    data = np.genfromtxt(ofile, names=None, dtype=descr, delimiter=',',
+                         missing_values='?', usemask=True).filled(np.NaN)
     return data, meta
 
 
